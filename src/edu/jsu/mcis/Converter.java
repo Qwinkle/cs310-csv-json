@@ -64,10 +64,49 @@ public class Converter {
         try {
             
             CSVReader reader = new CSVReader(new StringReader(csvString));
+            
             List<String[]> full = reader.readAll();
             Iterator<String[]> iterator = full.iterator();
             
-            // INSERT YOUR CODE HERE
+            JSONObject jsonObject = new JSONObject();
+            
+            JSONArray rowHeaders = new JSONArray();
+            JSONArray mainData = new JSONArray();
+            JSONArray colHeaders = new JSONArray();
+            
+            // Get the first row of CSV data (the column headers) and copy its
+            // elements into the "colHeaders" container.
+            
+            for (String string : iterator.next()) {
+                
+                colHeaders.add(string);
+                
+            }
+            
+            while (iterator.hasNext()) {
+                
+                JSONArray rowData = new JSONArray(); // Create "rowData" list
+                
+                String[] rows = iterator.next();     // Get next row as string array
+                rowHeaders.add(rows[0]);             // Add first element to "rowHeaders"
+                
+                
+                // (convert elements; add to "mainData")
+                for (int i = 0; i < rows.length; i++) {
+                    
+                    rowData.add(Integer.parseInt(rows[i]));
+                    
+                }
+                
+                mainData.add(rowData);
+                
+            }
+            
+            jsonObject.put("colHeaders", colHeaders);
+            jsonObject.put("rowHeaders", rowHeaders);
+            jsonObject.put("data", mainData);
+            
+            results = JSONValue.toJSONString(jsonObject);
             
         }        
         catch(Exception e) { return e.toString(); }
@@ -84,8 +123,62 @@ public class Converter {
 
             StringWriter writer = new StringWriter();
             CSVWriter csvWriter = new CSVWriter(writer, ',', '"', '\n');
+        
+            JSONParser parser = new JSONParser();
+            JSONObject jsonObject = (JSONObject)parser.parse(jsonString);
             
-            // INSERT YOUR CODE HERE
+            JSONArray colHeaders = (JSONArray)jsonObject.get("colHeaders");
+            JSONArray rowHeaders = (JSONArray)jsonObject.get("rowHeaders");
+            JSONArray data = (JSONArray)jsonObject.get("data");
+            
+            String[] colStringArray = new String[colHeaders.size()];
+            String[] rowStringArray = new String[rowHeaders.size()];
+            String[] dataStringArray = new String[data.size()];
+            
+            // First, get the column headers, copying each into the
+            // "colStringArray" container.
+
+            for (int i = 0; i < colHeaders.size(); i++){
+                colStringArray[i] = colHeaders.get(i).toString();
+            }
+            
+            csvWriter.writeNext(colStringArray);
+            
+          
+            for (int i = 0; i < rowHeaders.size(); i++){
+            
+                // Get next row header
+            
+                rowStringArray[i] = rowHeaders.get(i).toString();
+                
+                // Get next set of row data
+                
+                dataStringArray[i] = data.get(i).toString();
+                
+            }
+
+            for (int i = 0; i < dataStringArray.length; i++) {
+            
+                // Parse row data (example: "[611,146,128,337]") into a JSON
+                // array called "dataValues".
+                                
+                JSONArray dataValues = (JSONArray)parser.parse(dataStringArray[i]);
+
+                String[] row = new String[dataValues.size() + 1];
+    
+                row[0] = rowStringArray[i];
+                
+                for (int j = 0; j < dataValues.size(); j++) {
+                    
+                    row[j + 1] = dataValues.get(j).toString();
+                }
+                csvWriter.writeNext(row);
+               
+            }
+             
+            // Output the completed CSV data to a string
+            
+            results = writer.toString();
             
         }
         
